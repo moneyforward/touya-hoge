@@ -10,7 +10,6 @@ executors:
     docker:
       - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.0.33
         <<: *harbor_auth
-        command: mysqld --max_allowed_packet=67108864 --max_connections=3000
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
           MYSQL_TCP_PORT: 15306
