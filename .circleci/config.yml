@@ -15,7 +15,10 @@ jobs:
       - checkout
       - run:
           name: Build binary
-          command: ./scripts/build.sh
+          command: |
+            mkdir build/
+            cd src
+            go build -o ../build/build
       - run:
           name: List
           command: ls -la .
@@ -26,7 +29,7 @@ jobs:
   test:
     resource_class: small
     docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.2.0
+      - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.0.33
         <<: *harbor_auth
         command: mysqld --max_allowed_packet=67108864 --max_connections=3000
         environment:
@@ -49,8 +52,8 @@ workflows:
   build_n_test:
     jobs:
       - build:
-          context:
-            - harbor-public-shared-creds
+          context: harbor-public-shared-creds
       - test:
-          context:
-            - harbor-public-shared-creds
+          context: harbor-public-shared-creds
+          requires:
+            - build
