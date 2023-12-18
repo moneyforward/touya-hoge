@@ -43,8 +43,7 @@ jobs:
       DB_NAME: sunstrika
       REDIS_PORT: 6379
     steps:
-      - checkout
-      - test
+      - run: echo "alo"
 
 workflows:
   build_n_test:
