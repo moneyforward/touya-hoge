@@ -67,7 +67,7 @@ jobs:
             DB_PASSWORD: "sunstrika"
             DB_NAME: "touya"
             REDIS_HOST: "touya_redis"
-            REDIS_PORT: 3306
+            REDIS_PORT: 6379
 
 workflows:
   build_n_test:

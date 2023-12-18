@@ -13,4 +13,4 @@ fi
 
 docker run -it -v .:/usr/app -w /usr/app/src \
   $GO_DOCKER_IMG \
-  go build -o /usr/app/build/build
+  bash

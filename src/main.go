@@ -6,7 +6,11 @@ import (
 	"log"
 	"os"
 	_ "github.com/go-sql-driver/mysql"
+	redis "github.com/go-redis/redis/v8"
+	"context"
 )
+
+var ctx = context.Background()
 
 func connectMysql() {
 	// Get database connection details from environment variables
