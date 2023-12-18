@@ -19,7 +19,7 @@ executors:
           MYSQL_USER: "touya"
           MYSQL_PASSWORD: "sunstrika"
       - image: harbor-public.test.musubu.co.in/dockerio/cimg/redis:5.0.14
-        name: redis
+        name: touya_redis
         <<: *harbor_auth
 
 jobs:
@@ -43,6 +43,7 @@ jobs:
             - "build/goapp"
 
   test:
+    parallelism: 20
     resource_class: small
     executor: test_runner
     steps:
@@ -53,7 +54,7 @@ jobs:
           command: dockerize -wait tcp://touya_mysql:3306 -timeout 1m
       - run:
           name: Wait for MySQL
-          command: dockerize -wait tcp://redis:6379 -timeout 1m
+          command: dockerize -wait tcp://touya_redis:6379 -timeout 1m
       - run:
           name: Executing Go app
           command: |
@@ -65,6 +66,8 @@ jobs:
             DB_USER: "touya"
             DB_PASSWORD: "sunstrika"
             DB_NAME: "touya"
+            REDIS_HOST: "touya_redis"
+            REDIS_PORT: 3306
 
 workflows:
   build_n_test:
