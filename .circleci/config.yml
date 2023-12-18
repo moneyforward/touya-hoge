@@ -1,26 +1,80 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/configuration-reference/#jobs
-jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
+harbor_auth: &harbor_auth
+  auth:
+    username: $HARBOR_USERNAME
+    password: $HARBOR_PASSWORD
+
+executors:
+  test_runner:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/configuration-reference/#steps
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/base:2023.12 # must be first as primary image https://circleci.com/docs/circleci-images/#language-image-variants
+        name: touya_base
+        <<: *harbor_auth
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/mysql:8.0
+        name: touya_mysql
+        <<: *harbor_auth
+        environment:
+          MYSQL_DATABASE: "touya"
+          MYSQL_USER: "touya"
+          MYSQL_PASSWORD: "sunstrika"
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/redis:5.0.14
+        name: touya_redis
+        <<: *harbor_auth
+
+jobs:
+  build:
+    docker:
+      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
+        <<: *harbor_auth
+    resource_class: small
+    working_directory: /tmp/touyahoge
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Build binary
+          command: |
+            mkdir build/
+            cd src
+            go build -o ../build/goapp
+      - persist_to_workspace:
+          root: /tmp/touyahoge
+          paths:
+            - "build/goapp"
 
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/configuration-reference/#workflows
+  test:
+    parallelism: 20
+    resource_class: small
+    executor: test_runner
+    steps:
+      - attach_workspace:
+          at: /tmp/touyahoge
+      - run:
+          name: Wait for MySQL
+          command: dockerize -wait tcp://touya_mysql:3306 -timeout 1m
+      - run:
+          name: Wait for MySQL
+          command: dockerize -wait tcp://touya_redis:6379 -timeout 1m
+      - run:
+          name: Executing Go app
+          command: |
+            cd /tmp/touyahoge
+            ./build/goapp
+          environment:
+            DB_HOST: "touya_mysql"
+            DB_PORT: 3306
+            DB_USER: "touya"
+            DB_PASSWORD: "sunstrika"
+            DB_NAME: "touya"
+            REDIS_HOST: "touya_redis"
+            REDIS_PORT: 6379
+
 workflows:
-  say-hello-workflow:
+  build_n_test:
     jobs:
-      - say-hello
+      - build:
+          context: harbor-public-shared-creds
+      - test:
+          context: harbor-public-shared-creds
+          requires:
+            - build
