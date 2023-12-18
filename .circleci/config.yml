@@ -1,14 +1,14 @@
 version: 2.1
 
 harbor_auth: &harbor_auth
-auth:
-  username: $HARBOR_USERNAME
-  password: $HARBOR_PASSWORD
+  auth:
+    username: $HARBOR_USERNAME
+    password: $HARBOR_PASSWORD
 
 jobs:
   build:
     docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/go:1.17.13
+      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
         <<: *harbor_auth
     resource_class: small
     steps:
@@ -23,26 +23,27 @@ jobs:
           name: List detail
           command: ls -la ./build
 
-  # test:
-  #   resource_class: small
-  #     - image: harbor-public.test.musubu.co.in/dockerio/mysql:latest
-  #       <<: *harbor_auth
-  #       command: mysqld --max_allowed_packet=67108864 --max_connections=3000
-  #       environment:
-  #         MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-  #         MYSQL_TCP_PORT: 15306
-  #         MYSQL_DATABASE: sunstrika
-  #     - image: harbor-public.test.musubu.co.in/dockerio/redis:6.2.6-alpine
-  #       <<: *harbor_auth
-  #   environment:
-  #     DB_HOST: "localhost"
-  #     DB_USER: "root"
-  #     DB_PORT: 15306
-  #     DB_PASS: ""
-  #     DB_NAME: sunstrika
-  #   steps:
-  #     - checkout
-  #     - test
+  test:
+    resource_class: small
+    docker:
+      - image: harbor-public.test.musubu.co.in/dockerio/mysql:latest
+        <<: *harbor_auth
+        command: mysqld --max_allowed_packet=67108864 --max_connections=3000
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_TCP_PORT: 15306
+          MYSQL_DATABASE: sunstrika
+      - image: harbor-public.test.musubu.co.in/dockerio/redis:6.2.6-alpine
+        <<: *harbor_auth
+    environment:
+      DB_HOST: "localhost"
+      DB_USER: "root"
+      DB_PORT: 15306
+      DB_PASS: ""
+      DB_NAME: sunstrika
+    steps:
+      - checkout
+      - test
 
 workflows:
   build_n_test:
