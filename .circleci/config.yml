@@ -8,7 +8,7 @@ harbor_auth: &harbor_auth
 executors:
   test_runner:
     docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/cimg/base:2023.12 # must be first as primary image
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/base:2023.12 # must be first as primary image https://circleci.com/docs/circleci-images/#language-image-variants
         name: touya_base
         <<: *harbor_auth
       - image: harbor-public.test.musubu.co.in/dockerio/cimg/mysql:8.0
@@ -19,24 +19,24 @@ executors:
         <<: *harbor_auth
 
 jobs:
-  # build:
-  #   docker:
-  #     - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
-  #       <<: *harbor_auth
-  #   resource_class: small
-  #   working_directory: /tmp/touyahoge
-  #   steps:
-  #     - checkout
-  #     # - run:
-  #     #     name: Build binary
-  #     #     command: |
-  #     #       mkdir build/
-  #     #       cd src
-  #     #       go build -o ../build/goapp
-  #     # - persist_to_workspace:
-  #     #     root: /tmp/touyahoge
-  #     #     paths:
-  #     #       - "build/goapp"
+  build:
+    docker:
+      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
+        <<: *harbor_auth
+    resource_class: small
+    working_directory: /tmp/touyahoge
+    steps:
+      - checkout
+      - run:
+          name: Build binary
+          command: |
+            mkdir build/
+            cd src
+            go build -o ../build/goapp
+      - persist_to_workspace:
+          root: /tmp/touyahoge
+          paths:
+            - "build/goapp"
 
   test:
     resource_class: small
@@ -46,14 +46,10 @@ jobs:
           at: /tmp/touyahoge
       - run:
           name: Wait for MySQL
-          command: dockerize -wait tcp://redis:6379 -timeout 1m
-      - run:
-          name: Wait for Postgres
-          command: dockerize -wait tcp://touya_postgres:5432 -timeout 1m
+          command: dockerize -wait tcp://touya_db:3306 -timeout 1m
       - run:
           name: Wait for MySQL
-          command: dockerize -wait tcp://touya_db:3306 -timeout 1m
-      - run: curl -v telnet://touya_db:3306
+          command: dockerize -wait tcp://redis:6379 -timeout 1m
       - run:
           name: Executing Go app
           command: |
@@ -63,9 +59,9 @@ jobs:
 workflows:
   build_n_test:
     jobs:
-      # - build:
-      #     context: harbor-public-shared-creds
+      - build:
+          context: harbor-public-shared-creds
       - test:
           context: harbor-public-shared-creds
-          # requires:
-          #   - build
+          requires:
+            - build

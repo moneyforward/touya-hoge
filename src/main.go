@@ -33,7 +33,7 @@ func main() {
 	}
 
 	for i := 0; i < 1000; i++ {
-		_, err = db.Exec(`SELECT 1`);
+		_, err = db.Exec(fmt.Sprintf(`SELECT %v * %v`, i, i));
 		if err != nil {
 			log.Fatal(err)
 		}
