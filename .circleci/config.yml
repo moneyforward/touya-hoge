@@ -26,14 +26,14 @@ jobs:
   test:
     resource_class: small
     docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/mysql:latest
+      - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.2.0
         <<: *harbor_auth
         command: mysqld --max_allowed_packet=67108864 --max_connections=3000
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
           MYSQL_TCP_PORT: 15306
           MYSQL_DATABASE: sunstrika
-      - image: harbor-public.test.musubu.co.in/dockerio/redis:6.2.6-alpine
+      - image: harbor-public.test.musubu.co.in/dockerio/redis:7.2.3-alpine
         <<: *harbor_auth
     environment:
       DB_HOST: "localhost"
@@ -41,6 +41,7 @@ jobs:
       DB_PORT: 15306
       DB_PASS: ""
       DB_NAME: sunstrika
+      REDIS_PORT: 6379
     steps:
       - checkout
       - test
@@ -51,6 +52,6 @@ workflows:
       - build:
           context:
             - harbor-public-shared-creds
-      # - test:
-      #     context:
-      #       - harbor-public-shared-creds
+      - test:
+          context:
+            - harbor-public-shared-creds
