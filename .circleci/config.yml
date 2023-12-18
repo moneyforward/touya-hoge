@@ -5,29 +5,8 @@ harbor_auth: &harbor_auth
     username: $HARBOR_USERNAME
     password: $HARBOR_PASSWORD
 
-jobs:
-  build:
-    docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
-        <<: *harbor_auth
-    resource_class: small
-    steps:
-      - checkout
-      - run:
-          name: Build binary
-          command: |
-            mkdir build/
-            cd src
-            go build -o ../build/build
-      - run:
-          name: List
-          command: ls -la .
-      - run:
-          name: List detail
-          command: ls -la ./build
-
-  test:
-    resource_class: small
+executors:
+  test_runner:
     docker:
       - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.0.33
         <<: *harbor_auth
@@ -45,8 +24,39 @@ jobs:
       DB_PASS: ""
       DB_NAME: sunstrika
       REDIS_PORT: 6379
+
+jobs:
+  build:
+    docker:
+      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
+        <<: *harbor_auth
+    resource_class: small
+    working_directory: /tmp/touyahoge
     steps:
-      - run: echo "alo"
+      - checkout
+      - run:
+          name: Build binary
+          command: |
+            mkdir build/
+            cd src
+            go build -o ../build/goapp
+      - persist_to_workspace:
+          root: /tmp/touyahoge
+          paths:
+            - "build/goapp"
+
+  test:
+    resource_class: small
+    executor:
+      name: test_runner
+    steps:
+      - attach_workspace:
+          at: /tmp/touyahoge
+      - run:
+          name: Executing Go app
+          command: |
+            cd /tmp/touyahoge
+            ./build/goapp
 
 workflows:
   build_n_test:
