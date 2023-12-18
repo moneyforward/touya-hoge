@@ -12,8 +12,12 @@ executors:
         name: touya_base
         <<: *harbor_auth
       - image: harbor-public.test.musubu.co.in/dockerio/cimg/mysql:8.0
-        name: touya_db
+        name: touya_mysql
         <<: *harbor_auth
+        environment:
+          MYSQL_DATABASE: "touya"
+          MYSQL_USER: "touya"
+          MYSQL_PASSWORD: "sunstrika"
       - image: harbor-public.test.musubu.co.in/dockerio/cimg/redis:5.0.14
         name: redis
         <<: *harbor_auth
@@ -46,7 +50,7 @@ jobs:
           at: /tmp/touyahoge
       - run:
           name: Wait for MySQL
-          command: dockerize -wait tcp://touya_db:3306 -timeout 1m
+          command: dockerize -wait tcp://touya_mysql:3306 -timeout 1m
       - run:
           name: Wait for MySQL
           command: dockerize -wait tcp://redis:6379 -timeout 1m
@@ -55,6 +59,12 @@ jobs:
           command: |
             cd /tmp/touyahoge
             ./build/goapp
+          environment:
+            DB_HOST: "touya_mysql"
+            DB_PORT: 3306
+            DB_USER: "touya"
+            DB_PASSWORD: "sunstrika"
+            DB_NAME: "touya"
 
 workflows:
   build_n_test:
