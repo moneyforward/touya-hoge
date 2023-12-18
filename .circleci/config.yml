@@ -8,6 +8,9 @@ harbor_auth: &harbor_auth
 executors:
   test_runner:
     docker:
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/base:2023.12 # must be first as primary image
+        name: touya_base
+        <<: *harbor_auth
       - image: harbor-public.test.musubu.co.in/dockerio/cimg/mysql:8.0
         name: touya_db
         <<: *harbor_auth
@@ -37,11 +40,16 @@ jobs:
 
   test:
     resource_class: small
-    executor:
-      name: test_runner
+    executor: test_runner
     steps:
       - attach_workspace:
           at: /tmp/touyahoge
+      - run:
+          name: Wait for MySQL
+          command: dockerize -wait tcp://redis:6379 -timeout 1m
+      - run:
+          name: Wait for Postgres
+          command: dockerize -wait tcp://touya_postgres:5432 -timeout 1m
       - run:
           name: Wait for MySQL
           command: dockerize -wait tcp://touya_db:3306 -timeout 1m
