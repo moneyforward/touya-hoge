@@ -8,41 +8,32 @@ harbor_auth: &harbor_auth
 executors:
   test_runner:
     docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/mysql:8.0.33
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/mysql:8.0
+        name: touya_db
         <<: *harbor_auth
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-          MYSQL_TCP_PORT: 15306
-          MYSQL_DATABASE: sunstrika
-      - image: harbor-public.test.musubu.co.in/dockerio/redis:7.2.3-alpine
+      - image: harbor-public.test.musubu.co.in/dockerio/cimg/redis:5.0.14
+        name: redis
         <<: *harbor_auth
-    environment:
-      DB_HOST: "localhost"
-      DB_USER: "root"
-      DB_PORT: 15306
-      DB_PASS: ""
-      DB_NAME: sunstrika
-      REDIS_PORT: 6379
 
 jobs:
-  build:
-    docker:
-      - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
-        <<: *harbor_auth
-    resource_class: small
-    working_directory: /tmp/touyahoge
-    steps:
-      - checkout
-      - run:
-          name: Build binary
-          command: |
-            mkdir build/
-            cd src
-            go build -o ../build/goapp
-      - persist_to_workspace:
-          root: /tmp/touyahoge
-          paths:
-            - "build/goapp"
+  # build:
+  #   docker:
+  #     - image: harbor-public.test.musubu.co.in/dockerio/golang:1.17.13
+  #       <<: *harbor_auth
+  #   resource_class: small
+  #   working_directory: /tmp/touyahoge
+  #   steps:
+  #     - checkout
+  #     # - run:
+  #     #     name: Build binary
+  #     #     command: |
+  #     #       mkdir build/
+  #     #       cd src
+  #     #       go build -o ../build/goapp
+  #     # - persist_to_workspace:
+  #     #     root: /tmp/touyahoge
+  #     #     paths:
+  #     #       - "build/goapp"
 
   test:
     resource_class: small
@@ -52,6 +43,10 @@ jobs:
       - attach_workspace:
           at: /tmp/touyahoge
       - run:
+          name: Wait for MySQL
+          command: dockerize -wait tcp://touya_db:3306 -timeout 1m
+      - run: curl -v telnet://touya_db:3306
+      - run:
           name: Executing Go app
           command: |
             cd /tmp/touyahoge
@@ -60,9 +55,9 @@ jobs:
 workflows:
   build_n_test:
     jobs:
-      - build:
-          context: harbor-public-shared-creds
+      # - build:
+      #     context: harbor-public-shared-creds
       - test:
           context: harbor-public-shared-creds
-          requires:
-            - build
+          # requires:
+          #   - build
